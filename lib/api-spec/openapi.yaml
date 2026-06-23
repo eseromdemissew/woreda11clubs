@@ -1,22 +1,37 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Woreda 11 Club Attendance Management API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: clubs
+    description: Club management
+  - name: members
+    description: Member management
+  - name: attendance
+    description: Attendance tracking
+  - name: news
+    description: News management
+  - name: reports
+    description: Reports and analytics
+  - name: push
+    description: Push notifications
+  - name: upload
+    description: File uploads
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +39,1086 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginInput"
+      responses:
+        "200":
+          description: Logged in
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Not authenticated
+
+  /clubs:
+    get:
+      operationId: listClubs
+      tags: [clubs]
+      summary: List all clubs with stats
+      responses:
+        "200":
+          description: List of clubs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClubWithStats"
+    post:
+      operationId: createClub
+      tags: [clubs]
+      summary: Create a new club (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClubInput"
+      responses:
+        "201":
+          description: Club created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubWithStats"
+
+  /clubs/{id}:
+    get:
+      operationId: getClub
+      tags: [clubs]
+      summary: Get a club by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Club details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubWithStats"
+    put:
+      operationId: updateClub
+      tags: [clubs]
+      summary: Update a club (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClubUpdate"
+      responses:
+        "200":
+          description: Updated club
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClubWithStats"
+    delete:
+      operationId: deleteClub
+      tags: [clubs]
+      summary: Delete a club (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /clubs/{id}/status:
+    patch:
+      operationId: updateClubStatus
+      tags: [clubs]
+      summary: Toggle club active status (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ClubStatusInput"
+      responses:
+        "200":
+          description: Status updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /clubs/{id}/members:
+    get:
+      operationId: getClubMembers
+      tags: [clubs]
+      summary: Get members for a specific club
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Club members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Member"
+
+  /members:
+    get:
+      operationId: listMembers
+      tags: [members]
+      summary: List members (admin sees all, manager sees own club)
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: clubId
+          in: query
+          schema:
+            type: string
+        - name: gender
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Paginated members
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberList"
+    post:
+      operationId: createMember
+      tags: [members]
+      summary: Create a new member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberInput"
+      responses:
+        "201":
+          description: Member created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+
+  /members/{id}:
+    get:
+      operationId: getMember
+      tags: [members]
+      summary: Get member details with attendance history
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Member detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberDetail"
+    put:
+      operationId: updateMember
+      tags: [members]
+      summary: Update a member
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MemberUpdate"
+      responses:
+        "200":
+          description: Updated member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Member"
+    delete:
+      operationId: deleteMember
+      tags: [members]
+      summary: Delete a member (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /attendance:
+    get:
+      operationId: listAttendance
+      tags: [attendance]
+      summary: Get attendance sessions (supports today, stats, or filtered)
+      parameters:
+        - name: today
+          in: query
+          schema:
+            type: string
+        - name: stats
+          in: query
+          schema:
+            type: string
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+        - name: clubId
+          in: query
+          schema:
+            type: string
+        - name: gender
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Attendance data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceResponse"
+    post:
+      operationId: submitAttendance
+      tags: [attendance]
+      summary: Submit attendance for today (manager only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AttendanceInput"
+      responses:
+        "201":
+          description: Attendance submitted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceSession"
+
+  /attendance/today/{clubId}:
+    get:
+      operationId: getTodayAttendance
+      tags: [attendance]
+      summary: Get today's attendance session for a club
+      parameters:
+        - name: clubId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Today's session or null
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TodayAttendanceResponse"
+
+  /attendance/chart:
+    get:
+      operationId: getAttendanceChart
+      tags: [attendance]
+      summary: Get attendance chart data (last 30 days by club)
+      responses:
+        "200":
+          description: Chart data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceChartPoint"
+
+  /news:
+    get:
+      operationId: listNews
+      tags: [news]
+      summary: List published news with read status
+      responses:
+        "200":
+          description: News list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/NewsItem"
+    post:
+      operationId: createNews
+      tags: [news]
+      summary: Publish a news article (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewsInput"
+      responses:
+        "201":
+          description: News published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsItem"
+
+  /news/{id}:
+    get:
+      operationId: getNews
+      tags: [news]
+      summary: Get a single news article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: News article
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsItem"
+    put:
+      operationId: updateNews
+      tags: [news]
+      summary: Update a news article (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewsUpdate"
+      responses:
+        "200":
+          description: Updated news
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NewsItem"
+    delete:
+      operationId: deleteNews
+      tags: [news]
+      summary: Delete a news article (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /news/{id}/read:
+    post:
+      operationId: markNewsRead
+      tags: [news]
+      summary: Mark a news article as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Marked as read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /reports:
+    get:
+      operationId: getReports
+      tags: [reports]
+      summary: Get attendance report with filters (admin only)
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+        - name: to
+          in: query
+          schema:
+            type: string
+        - name: clubId
+          in: query
+          schema:
+            type: string
+        - name: gender
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Report data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReportResponse"
+
+  /reports/absent:
+    get:
+      operationId: getAbsentClubs
+      tags: [reports]
+      summary: Get clubs that have not submitted attendance recently (admin only)
+      responses:
+        "200":
+          description: Absent clubs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AbsentClub"
+
+  /push/subscribe:
+    post:
+      operationId: subscribePush
+      tags: [push]
+      summary: Subscribe to push notifications
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushSubscriptionInput"
+      responses:
+        "200":
+          description: Subscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+    delete:
+      operationId: unsubscribePush
+      tags: [push]
+      summary: Unsubscribe from push notifications
+      responses:
+        "200":
+          description: Unsubscribed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /upload:
+    post:
+      operationId: uploadFile
+      tags: [upload]
+      summary: Upload a file (profile photo, club icon, news image)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/FileUploadInput"
+      responses:
+        "200":
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadResponse"
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [reports]
+      summary: Get admin dashboard KPI stats
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    SuccessResponse:
+      type: object
+      required: [success]
+      properties:
+        success:
+          type: boolean
+
+    LoginInput:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    AuthResponse:
+      type: object
+      required: [user, token]
+      properties:
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        token:
+          type: string
+
+    UserProfile:
+      type: object
+      required: [id, username, fullName, email, role, isActive, createdAt]
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        fullName:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, manager]
+        clubId:
+          type: ["string", "null"]
+        profilePhotoUrl:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+
+    ClubInput:
+      type: object
+      required: [name, managerFullName, managerEmail, managerUsername, managerPassword]
+      properties:
+        name:
+          type: string
+        iconUrl:
+          type: ["string", "null"]
+        managerFullName:
+          type: string
+        managerEmail:
+          type: string
+        managerUsername:
+          type: string
+        managerPassword:
+          type: string
+
+    ClubUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        iconUrl:
+          type: ["string", "null"]
+        managerFullName:
+          type: ["string", "null"]
+        managerEmail:
+          type: ["string", "null"]
+
+    ClubStatusInput:
+      type: object
+      required: [isActive]
+      properties:
+        isActive:
+          type: boolean
+
+    ClubWithStats:
+      type: object
+      required: [id, name, isActive, createdAt, memberCount, sessionCount]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        iconUrl:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+        managerId:
+          type: ["string", "null"]
+        managerName:
+          type: ["string", "null"]
+        managerEmail:
+          type: ["string", "null"]
+        memberCount:
+          type: integer
+        sessionCount:
+          type: integer
+        lastSubmittedAt:
+          type: ["string", "null"]
+
+    Member:
+      type: object
+      required: [id, clubId, fullName, phoneNumber, age, gender, createdAt]
+      properties:
+        id:
+          type: string
+        clubId:
+          type: string
+        fullName:
+          type: string
+        phoneNumber:
+          type: string
+        age:
+          type: integer
+        gender:
+          type: string
+          enum: [Male, Female, Other]
+        addedBy:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        clubName:
+          type: ["string", "null"]
+
+    MemberInput:
+      type: object
+      required: [clubId, fullName, phoneNumber, age, gender]
+      properties:
+        clubId:
+          type: string
+        fullName:
+          type: string
+        phoneNumber:
+          type: string
+        age:
+          type: integer
+        gender:
+          type: string
+          enum: [Male, Female, Other]
+
+    MemberUpdate:
+      type: object
+      properties:
+        fullName:
+          type: string
+        phoneNumber:
+          type: string
+        age:
+          type: integer
+        gender:
+          type: string
+          enum: [Male, Female, Other]
+
+    MemberList:
+      type: object
+      required: [members, total]
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/Member"
+        total:
+          type: integer
+
+    AttendanceRecord:
+      type: object
+      required: [id, memberId, memberName, attendedAt]
+      properties:
+        id:
+          type: string
+        memberId:
+          type: string
+        memberName:
+          type: string
+        memberAge:
+          type: integer
+        memberGender:
+          type: string
+        attendedAt:
+          type: string
+        sessionDate:
+          type: string
+        clubName:
+          type: ["string", "null"]
+
+    MemberDetail:
+      type: object
+      required: [id, clubId, fullName, phoneNumber, age, gender, createdAt, attendanceHistory]
+      properties:
+        id:
+          type: string
+        clubId:
+          type: string
+        fullName:
+          type: string
+        phoneNumber:
+          type: string
+        age:
+          type: integer
+        gender:
+          type: string
+        createdAt:
+          type: string
+        clubName:
+          type: ["string", "null"]
+        attendanceHistory:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceRecord"
+
+    AttendanceSession:
+      type: object
+      required: [id, clubId, submittedBy, date, memberCount, submittedAt]
+      properties:
+        id:
+          type: string
+        clubId:
+          type: string
+        submittedBy:
+          type: string
+        date:
+          type: string
+        memberCount:
+          type: integer
+        submittedAt:
+          type: string
+        clubName:
+          type: ["string", "null"]
+        managerName:
+          type: ["string", "null"]
+        clubIconUrl:
+          type: ["string", "null"]
+
+    AttendanceInput:
+      type: object
+      required: [clubId, memberIds]
+      properties:
+        clubId:
+          type: string
+        memberIds:
+          type: array
+          items:
+            type: string
+
+    AttendanceResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/AttendanceSession"
+        total:
+          type: ["integer", "null"]
+        stats:
+          $ref: "#/components/schemas/AdminStats"
+
+    TodayAttendanceResponse:
+      type: object
+      required: [submitted]
+      properties:
+        submitted:
+          type: boolean
+        session:
+          $ref: "#/components/schemas/AttendanceSession"
+        attendedMembers:
+          type: array
+          items:
+            $ref: "#/components/schemas/Member"
+
+    AttendanceChartPoint:
+      type: object
+      required: [date, total]
+      properties:
+        date:
+          type: string
+        total:
+          type: integer
+        byClub:
+          type: array
+          items:
+            type: object
+            required: [clubId, clubName, count]
+            properties:
+              clubId:
+                type: string
+              clubName:
+                type: string
+              count:
+                type: integer
+
+    AdminStats:
+      type: object
+      required: [totalClubs, totalMembers, clubsSubmittedToday, totalClubsToday, activeManagers]
+      properties:
+        totalClubs:
+          type: integer
+        totalMembers:
+          type: integer
+        clubsSubmittedToday:
+          type: integer
+        totalClubsToday:
+          type: integer
+        activeManagers:
+          type: integer
+        pendingClubs:
+          type: integer
+
+    NewsItem:
+      type: object
+      required: [id, title, description, isPublished, publishedAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+        publishedBy:
+          type: ["string", "null"]
+        publishedByName:
+          type: ["string", "null"]
+        isPublished:
+          type: boolean
+        publishedAt:
+          type: string
+        updatedAt:
+          type: string
+        isRead:
+          type: boolean
+        readCount:
+          type: integer
+
+    NewsInput:
+      type: object
+      required: [title, description]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+
+    NewsUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: ["string", "null"]
+
+    ReportRow:
+      type: object
+      required: [memberId, memberName, age, gender, phone, clubName, sessionDate, attendedAt]
+      properties:
+        memberId:
+          type: string
+        memberName:
+          type: string
+        age:
+          type: integer
+        gender:
+          type: string
+        phone:
+          type: string
+        clubName:
+          type: string
+        sessionDate:
+          type: string
+        attendedAt:
+          type: string
+
+    ReportResponse:
+      type: object
+      required: [rows, total]
+      properties:
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/ReportRow"
+        total:
+          type: integer
+
+    AbsentClub:
+      type: object
+      required: [clubId, clubName, daysSince, status]
+      properties:
+        clubId:
+          type: string
+        clubName:
+          type: string
+        managerId:
+          type: ["string", "null"]
+        managerName:
+          type: ["string", "null"]
+        lastSubmittedAt:
+          type: ["string", "null"]
+        daysSince:
+          type: integer
+        status:
+          type: string
+          enum: [warning, high, critical, never]
+
+    PushSubscriptionInput:
+      type: object
+      required: [endpoint, p256dh, auth]
+      properties:
+        endpoint:
+          type: string
+        p256dh:
+          type: string
+        auth:
+          type: string
+
+    FileUploadInput:
+      type: object
+      required: [type]
+      properties:
+        type:
+          type: string
+          enum: [profile, club-icon, news]
+        entityId:
+          type: string
+
+    UploadResponse:
+      type: object
+      required: [url]
+      properties:
+        url:
+          type: string

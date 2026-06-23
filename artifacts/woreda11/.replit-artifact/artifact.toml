@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Woreda 11 — Club Attendance Platform"
+version = "1.0.0"
+id = "artifacts/woreda11"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23517
+
+[services.development]
+run = "pnpm --filter @workspace/woreda11 run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/woreda11", "run", "build" ]
+publicDir = "artifacts/woreda11/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23517"
+BASE_PATH = "/"
