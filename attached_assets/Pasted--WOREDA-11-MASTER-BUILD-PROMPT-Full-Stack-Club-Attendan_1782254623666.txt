@@ -1,0 +1,1954 @@
+# WOREDA 11 — MASTER BUILD PROMPT
+## Full-Stack Club Attendance Management Platform
+### From Zero to Production — Complete Specification
+
+---
+
+> **HOW TO USE THIS PROMPT**
+> Paste everything below this line into Bolt.new, Cursor, v0.dev, or any AI builder.
+> The AI will build the entire application from scratch.
+> Provide your Supabase credentials when asked.
+
+---
+
+# SYSTEM INSTRUCTION
+
+You are a senior full-stack engineer. Build the complete **Woreda 11** club
+attendance management platform from scratch. Every feature, every page,
+every API route, every database table must be fully implemented and working.
+
+**No placeholders. No TODOs. No demo data. No mock functions.**
+Every button must do something real. Every form must save to the database.
+Every chart must show real data. Every notification must fire.
+
+---
+
+# SECTION 1 — TECH STACK
+
+## Framework
+- **Next.js 14** — App Router, TypeScript, Server Components
+- **React 18** — client components with hooks
+
+## Styling
+- **Tailwind CSS** — utility classes
+- **Framer Motion** — all animations and transitions
+- **Custom CSS variables** — theming system
+
+## Database & Backend
+- **Supabase** — PostgreSQL database
+- **Supabase Auth** — authentication and sessions
+- **Supabase Realtime** — live WebSocket updates
+- **Supabase Storage** — file uploads (photos, icons)
+- **Next.js API Routes** — server-side logic
+
+## State Management
+- **Zustand** — global state (auth, notifications, theme)
+- **React hooks** — local component state
+
+## UI Libraries
+- **Recharts** — all dashboard charts
+- **SheetJS (xlsx)** — Excel export
+- **Lucide React** — icons throughout
+- **React Hot Toast** — toast notifications
+- **date-fns** — date formatting
+
+## Push Notifications
+- **web-push** — VAPID server-side push
+- **Service Worker** — background push handler
+
+## Security
+- **bcryptjs** — password hashing
+- **Supabase RLS** — row-level security
+
+## Packages to install
+```bash
+npm install next react react-dom typescript @types/node @types/react @types/react-dom
+npm install tailwindcss postcss autoprefixer
+npm install @supabase/supabase-js @supabase/ssr
+npm install zustand framer-motion recharts xlsx lucide-react
+npm install react-hot-toast date-fns clsx
+npm install web-push bcryptjs
+npm install --save-dev @types/web-push @types/bcryptjs
+```
+
+---
+
+# SECTION 2 — DESIGN SYSTEM
+
+## Brand Colors
+```css
+:root {
+  --brand:         #255057;
+  --brand-hover:   #1c3e44;
+  --brand-active:  #163035;
+  --brand-light:   #e8f5f7;
+  --brand-subtle:  #d0ecef;
+  --brand-border:  rgba(37, 80, 87, 0.25);
+
+  /* Light mode */
+  --bg-page:       #f5f8f8;
+  --bg-surface:    #ffffff;
+  --bg-raised:     #edf4f5;
+  --text-primary:  #0d1f22;
+  --text-secondary:#3d5c60;
+  --text-muted:    #7a9ea3;
+  --border:        rgba(37, 80, 87, 0.15);
+  --border-strong: rgba(37, 80, 87, 0.3);
+
+  /* Status */
+  --success:       #0f6e56;
+  --success-bg:    #e1f5ee;
+  --danger:        #a32d2d;
+  --danger-bg:     #fcebeb;
+  --warning:       #854f0b;
+  --warning-bg:    #faeeda;
+  --info:          #0c447c;
+  --info-bg:       #e6f1fb;
+}
+
+[data-theme="dark"] {
+  --bg-page:       #0a1517;
+  --bg-surface:    #0f1e20;
+  --bg-raised:     #162628;
+  --text-primary:  #e8f5f7;
+  --text-secondary:#8ab5bb;
+  --text-muted:    #4f7f85;
+  --border:        rgba(37, 80, 87, 0.3);
+  --border-strong: rgba(37, 80, 87, 0.5);
+  --brand-light:   #1a3a3f;
+  --brand-subtle:  #1f464c;
+}
+```
+
+## Typography
+- Font family: **Inter** (Google Fonts)
+- Headings: weight 600, tight tracking
+- Body: weight 400, line-height 1.7
+- Mono: **JetBrains Mono** for code/IDs
+
+## Spacing
+- Base unit: 4px
+- Use: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64px
+
+## Border Radius
+- Small: 6px (badges, pills)
+- Medium: 10px (inputs, buttons)
+- Large: 14px (cards, modals)
+- XL: 20px (hero cards)
+
+## Shadows (dark mode compatible)
+```css
+--shadow-sm:  0 1px 3px rgba(0,0,0,0.08);
+--shadow-md:  0 4px 12px rgba(0,0,0,0.10);
+--shadow-lg:  0 8px 32px rgba(0,0,0,0.14);
+```
+
+## Animation Principles
+- All transitions: **250ms ease** default
+- Page entry: **fade-up** (opacity 0→1, translateY 16px→0, stagger 60ms)
+- Modal: **scale(0.95)→scale(1)** + opacity, 200ms spring
+- Hover cards: **translateY(-3px)**, 200ms
+- Button press: **scale(0.97)**, 100ms
+- Theme switch: **crossfade** all CSS vars 250ms
+- Skeleton: **shimmer** (gradient sweep left→right 1.5s infinite)
+- Charts: **draw-in** animation on mount 800ms easeOut
+- Sidebar collapse: **width transition** 250ms cubic-bezier
+- New feed entry: **slideIn** from top 300ms spring
+- Notification: **slide from right** 300ms ease-out
+
+---
+
+# SECTION 3 — DATABASE SCHEMA
+
+Run this SQL in Supabase SQL Editor:
+
+```sql
+-- ═══════════════════════════════════════════════════════════
+-- WOREDA 11 — COMPLETE DATABASE SCHEMA
+-- ═══════════════════════════════════════════════════════════
+
+-- USERS TABLE
+CREATE TABLE users (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  auth_id           UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+  username          TEXT UNIQUE NOT NULL,
+  full_name         TEXT NOT NULL,
+  email             TEXT UNIQUE NOT NULL,
+  role              TEXT NOT NULL CHECK (role IN ('admin', 'manager')),
+  club_id           UUID,
+  profile_photo_url TEXT,
+  is_active         BOOLEAN DEFAULT true,
+  created_at        TIMESTAMPTZ DEFAULT now(),
+  updated_at        TIMESTAMPTZ DEFAULT now()
+);
+
+-- CLUBS TABLE
+CREATE TABLE clubs (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name        TEXT NOT NULL,
+  icon_url    TEXT,
+  manager_id  UUID REFERENCES users(id),
+  is_active   BOOLEAN DEFAULT true,
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  updated_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- Add club_id foreign key to users
+ALTER TABLE users ADD CONSTRAINT users_club_id_fkey
+  FOREIGN KEY (club_id) REFERENCES clubs(id) ON DELETE SET NULL;
+
+-- MEMBERS TABLE
+CREATE TABLE members (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id      UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  full_name    TEXT NOT NULL,
+  phone_number TEXT NOT NULL,
+  age          INTEGER NOT NULL CHECK (age BETWEEN 5 AND 120),
+  gender       TEXT NOT NULL CHECK (gender IN ('Male', 'Female', 'Other')),
+  added_by     UUID REFERENCES users(id),
+  created_at   TIMESTAMPTZ DEFAULT now(),
+  updated_at   TIMESTAMPTZ DEFAULT now()
+);
+
+-- ATTENDANCE SESSIONS TABLE
+CREATE TABLE attendance_sessions (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id      UUID NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+  submitted_by UUID NOT NULL REFERENCES users(id),
+  date         DATE NOT NULL,
+  member_count INTEGER NOT NULL DEFAULT 0,
+  submitted_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(club_id, date)
+);
+
+-- ATTENDANCE RECORDS TABLE
+CREATE TABLE attendance_records (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id  UUID NOT NULL REFERENCES attendance_sessions(id) ON DELETE CASCADE,
+  member_id   UUID NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+  attended_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(session_id, member_id)
+);
+
+-- NEWS TABLE
+CREATE TABLE news (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title        TEXT NOT NULL,
+  description  TEXT NOT NULL,
+  image_url    TEXT,
+  published_by UUID REFERENCES users(id),
+  is_published BOOLEAN DEFAULT true,
+  published_at TIMESTAMPTZ DEFAULT now(),
+  updated_at   TIMESTAMPTZ DEFAULT now()
+);
+
+-- NEWS READS TABLE
+CREATE TABLE news_reads (
+  id      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  news_id UUID NOT NULL REFERENCES news(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  read_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(news_id, user_id)
+);
+
+-- PUSH SUBSCRIPTIONS TABLE
+CREATE TABLE push_subscriptions (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  endpoint   TEXT NOT NULL,
+  p256dh     TEXT NOT NULL,
+  auth       TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id, endpoint)
+);
+
+-- ═══════════════════════════════════════════════════════════
+-- INDEXES
+-- ═══════════════════════════════════════════════════════════
+CREATE INDEX idx_members_club_id      ON members(club_id);
+CREATE INDEX idx_sessions_club_id     ON attendance_sessions(club_id);
+CREATE INDEX idx_sessions_date        ON attendance_sessions(date);
+CREATE INDEX idx_records_session_id   ON attendance_records(session_id);
+CREATE INDEX idx_records_member_id    ON attendance_records(member_id);
+CREATE INDEX idx_news_reads_user      ON news_reads(user_id);
+CREATE INDEX idx_push_subs_user       ON push_subscriptions(user_id);
+
+-- ═══════════════════════════════════════════════════════════
+-- ROW LEVEL SECURITY
+-- ═══════════════════════════════════════════════════════════
+
+ALTER TABLE users               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clubs               ENABLE ROW LEVEL SECURITY;
+ALTER TABLE members             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendance_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendance_records  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE news                ENABLE ROW LEVEL SECURITY;
+ALTER TABLE news_reads          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE push_subscriptions  ENABLE ROW LEVEL SECURITY;
+
+-- Helper function: is current user admin?
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM users
+    WHERE auth_id = auth.uid() AND role = 'admin'
+  );
+$$ LANGUAGE sql SECURITY DEFINER;
+
+-- Helper function: current user's club_id
+CREATE OR REPLACE FUNCTION my_club_id()
+RETURNS UUID AS $$
+  SELECT club_id FROM users WHERE auth_id = auth.uid();
+$$ LANGUAGE sql SECURITY DEFINER;
+
+-- USERS policies
+CREATE POLICY "users_read_own"   ON users FOR SELECT USING (auth_id = auth.uid());
+CREATE POLICY "users_admin_all"  ON users FOR ALL    USING (is_admin());
+CREATE POLICY "users_update_own" ON users FOR UPDATE USING (auth_id = auth.uid());
+
+-- CLUBS policies
+CREATE POLICY "clubs_admin_all"        ON clubs FOR ALL    USING (is_admin());
+CREATE POLICY "clubs_manager_read_own" ON clubs FOR SELECT
+  USING (manager_id IN (SELECT id FROM users WHERE auth_id = auth.uid()));
+
+-- MEMBERS policies
+CREATE POLICY "members_admin_all"    ON members FOR ALL USING (is_admin());
+CREATE POLICY "members_manager_read" ON members FOR SELECT
+  USING (club_id = my_club_id());
+CREATE POLICY "members_manager_insert" ON members FOR INSERT
+  WITH CHECK (club_id = my_club_id());
+CREATE POLICY "members_manager_update" ON members FOR UPDATE
+  USING (club_id = my_club_id());
+
+-- ATTENDANCE SESSIONS policies
+CREATE POLICY "sessions_admin_all"    ON attendance_sessions FOR ALL    USING (is_admin());
+CREATE POLICY "sessions_manager_own"  ON attendance_sessions FOR SELECT
+  USING (club_id = my_club_id());
+CREATE POLICY "sessions_manager_insert" ON attendance_sessions FOR INSERT
+  WITH CHECK (club_id = my_club_id());
+
+-- ATTENDANCE RECORDS policies
+CREATE POLICY "records_admin_all"   ON attendance_records FOR ALL USING (is_admin());
+CREATE POLICY "records_manager_own" ON attendance_records FOR SELECT
+  USING (session_id IN (
+    SELECT id FROM attendance_sessions WHERE club_id = my_club_id()
+  ));
+CREATE POLICY "records_manager_insert" ON attendance_records FOR INSERT
+  WITH CHECK (session_id IN (
+    SELECT id FROM attendance_sessions WHERE club_id = my_club_id()
+  ));
+
+-- NEWS policies
+CREATE POLICY "news_admin_all"      ON news FOR ALL    USING (is_admin());
+CREATE POLICY "news_manager_read"   ON news FOR SELECT USING (is_published = true);
+
+-- NEWS READS policies
+CREATE POLICY "reads_own" ON news_reads FOR ALL USING (
+  user_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+);
+
+-- PUSH SUBSCRIPTIONS policies
+CREATE POLICY "push_own" ON push_subscriptions FOR ALL USING (
+  user_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+);
+
+-- ═══════════════════════════════════════════════════════════
+-- STORAGE BUCKETS
+-- ═══════════════════════════════════════════════════════════
+-- Run in Supabase Storage section:
+-- Create bucket: "profile-photos" (public)
+-- Create bucket: "club-icons" (public)
+-- Create bucket: "news-images" (public)
+
+-- ═══════════════════════════════════════════════════════════
+-- INITIAL ADMIN USER (run after setting up Auth)
+-- Replace with your actual admin auth.uid() after first login
+-- ═══════════════════════════════════════════════════════════
+-- INSERT INTO users (auth_id, username, full_name, email, role)
+-- VALUES ('YOUR_AUTH_UID', 'admin', 'System Admin', 'admin@woreda11.com', 'admin');
+```
+
+---
+
+# SECTION 4 — ENVIRONMENT VARIABLES
+
+Create `.env.local`:
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=YOUR_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=YOUR_VAPID_PUBLIC_KEY
+VAPID_PRIVATE_KEY=YOUR_VAPID_PRIVATE_KEY
+VAPID_SUBJECT=mailto:admin@woreda11.com
+NEXT_PUBLIC_APP_URL=https://yourdomain.com
+NODE_ENV=production
+```
+
+Generate secure keys:
+```bash
+# VAPID keys
+node -e "const wp=require('web-push');console.log(JSON.stringify(wp.generateVAPIDKeys(),null,2))"
+```
+
+---
+
+# SECTION 5 — COMPLETE FILE STRUCTURE
+
+```
+woreda11/
+├── public/
+│   ├── logo.png               ← app logo
+│   ├── icon-192.png
+│   ├── icon-512.png
+│   ├── badge-72.png
+│   ├── manifest.json
+│   └── sw.js                  ← service worker
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx         ← root layout
+│   │   ├── globals.css        ← all styles + CSS vars
+│   │   ├── page.tsx           ← redirect to /login
+│   │   ├── login/page.tsx
+│   │   ├── privacy/page.tsx
+│   │   ├── admin/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx
+│   │   │   ├── clubs/page.tsx
+│   │   │   ├── clubs/[clubId]/members/page.tsx
+│   │   │   ├── members/page.tsx
+│   │   │   ├── reports/page.tsx
+│   │   │   ├── news/page.tsx
+│   │   │   └── profile/page.tsx
+│   │   ├── manager/
+│   │   │   ├── layout.tsx
+│   │   │   ├── page.tsx
+│   │   │   ├── members/page.tsx
+│   │   │   ├── attendance/page.tsx
+│   │   │   ├── news/page.tsx
+│   │   │   └── profile/page.tsx
+│   │   └── api/
+│   │       ├── auth/login/route.ts
+│   │       ├── auth/logout/route.ts
+│   │       ├── auth/me/route.ts
+│   │       ├── clubs/route.ts
+│   │       ├── clubs/[id]/route.ts
+│   │       ├── clubs/[id]/status/route.ts
+│   │       ├── clubs/[id]/members/route.ts
+│   │       ├── members/route.ts
+│   │       ├── members/[id]/route.ts
+│   │       ├── attendance/route.ts
+│   │       ├── attendance/today/[clubId]/route.ts
+│   │       ├── news/route.ts
+│   │       ├── news/[id]/route.ts
+│   │       ├── news/[id]/read/route.ts
+│   │       ├── push/subscribe/route.ts
+│   │       ├── reports/route.ts
+│   │       ├── reports/absent/route.ts
+│   │       └── upload/route.ts
+│   ├── components/
+│   │   ├── ui/
+│   │   │   ├── Button.tsx
+│   │   │   ├── Input.tsx
+│   │   │   ├── Modal.tsx
+│   │   │   ├── Badge.tsx
+│   │   │   ├── Skeleton.tsx
+│   │   │   ├── Avatar.tsx
+│   │   │   ├── Spinner.tsx
+│   │   │   ├── Tooltip.tsx
+│   │   │   ├── Dropdown.tsx
+│   │   │   ├── Tabs.tsx
+│   │   │   ├── Table.tsx
+│   │   │   ├── EmptyState.tsx
+│   │   │   ├── ErrorState.tsx
+│   │   │   ├── ConfirmModal.tsx
+│   │   │   ├── FileUpload.tsx
+│   │   │   └── SearchInput.tsx
+│   │   ├── layout/
+│   │   │   ├── AdminSidebar.tsx
+│   │   │   ├── ManagerSidebar.tsx
+│   │   │   ├── ManagerBottomNav.tsx
+│   │   │   ├── Navbar.tsx
+│   │   │   ├── NavbarAvatar.tsx
+│   │   │   ├── BellMenu.tsx
+│   │   │   ├── Footer.tsx
+│   │   │   └── ThemeToggle.tsx
+│   │   ├── charts/
+│   │   │   ├── AttendanceLineChart.tsx
+│   │   │   ├── AttendanceBarChart.tsx
+│   │   │   └── GenderDonutChart.tsx
+│   │   ├── dashboard/
+│   │   │   ├── KpiCard.tsx
+│   │   │   ├── LiveActivityFeed.tsx
+│   │   │   └── AbsentAlertBanner.tsx
+│   │   ├── clubs/
+│   │   │   ├── ClubCard.tsx
+│   │   │   ├── ClubModal.tsx
+│   │   │   └── DeleteClubModal.tsx
+│   │   ├── members/
+│   │   │   ├── MemberTable.tsx
+│   │   │   ├── MemberModal.tsx
+│   │   │   ├── MemberDrawer.tsx
+│   │   │   └── DeleteMemberModal.tsx
+│   │   ├── attendance/
+│   │   │   ├── AttendanceChecklist.tsx
+│   │   │   └── SubmitAttendanceModal.tsx
+│   │   ├── news/
+│   │   │   ├── NewsCard.tsx
+│   │   │   ├── NewsModal.tsx
+│   │   │   └── NewsReadModal.tsx
+│   │   ├── reports/
+│   │   │   ├── ReportFilters.tsx
+│   │   │   ├── ReportTable.tsx
+│   │   │   ├── AbsentClubsTable.tsx
+│   │   │   └── ExportButton.tsx
+│   │   ├── AuthProvider.tsx
+│   │   ├── ThemeProvider.tsx
+│   │   └── PushManager.tsx
+│   ├── lib/
+│   │   ├── supabase/
+│   │   │   ├── client.ts
+│   │   │   └── server.ts
+│   │   ├── auth.ts
+│   │   ├── api.ts
+│   │   ├── formatDate.ts
+│   │   ├── exportExcel.ts
+│   │   ├── realtime.ts
+│   │   ├── pushNotifications.ts
+│   │   └── sendPush.ts
+│   ├── stores/
+│   │   ├── authStore.ts
+│   │   └── notificationStore.ts
+│   ├── hooks/
+│   │   ├── useData.ts
+│   │   ├── useAuth.ts
+│   │   └── useRealtime.ts
+│   ├── middleware.ts
+│   └── types/index.ts
+├── .env.local
+├── .env.example
+├── next.config.ts
+├── tailwind.config.ts
+├── tsconfig.json
+└── package.json
+```
+
+---
+
+# SECTION 6 — LOGIN PAGE
+
+## Visual Design
+- Full-viewport background: animated dark mesh using CSS `radial-gradient`
+  moving orbs (no JS needed — pure CSS animation)
+- Centered glassmorphism card:
+  - `backdrop-filter: blur(24px)`
+  - Background: `rgba(15,30,32,0.75)` dark / `rgba(255,255,255,0.85)` light
+  - Border: `1px solid rgba(37,80,87,0.4)`
+  - Border-radius: 20px
+  - Box-shadow: `0 0 60px rgba(37,80,87,0.2)`
+  - Width: 420px, max-width: calc(100vw - 32px)
+- Logo at top center (public/logo.png, height 52px)
+- Title: "Woreda 11" — 24px, weight 600
+- Subtitle: "Club Management Portal" — 14px, muted
+
+## Animated Background CSS
+```css
+.login-bg {
+  position: fixed;
+  inset: 0;
+  background: #0a1517;
+  overflow: hidden;
+}
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+  animation: float 12s ease-in-out infinite;
+}
+.orb-1 { width:500px;height:500px;background:#255057;top:-100px;left:-100px;animation-delay:0s; }
+.orb-2 { width:400px;height:400px;background:#0f6e56;top:50%;right:-100px;animation-delay:-4s; }
+.orb-3 { width:300px;height:300px;background:#255057;bottom:-100px;left:40%;animation-delay:-8s; }
+@keyframes float {
+  0%,100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-40px) scale(1.05); }
+}
+```
+
+## Form Fields
+- Email input — floating label, focus border `var(--brand)`
+- Password input — floating label + show/hide toggle eye icon
+- "Remember me" — custom styled checkbox
+- Login button — full width, `var(--brand)` background, shimmer sweep on hover
+- Loading state — spinner inside button, "Signing in..."
+
+## Behavior
+- Failed login: card shake animation (keyframe) + red border flash + toast error
+- Success: fade out login card, navigate to correct dashboard by role
+- Already logged in: middleware redirects automatically
+- Dark/light toggle — top-right corner, sun/moon icon, 180° rotation animation
+
+## Footer
+- "By signing in you agree to our Privacy Policy"
+- Privacy Policy links to `/privacy`
+
+---
+
+# SECTION 7 — SHARED LAYOUT COMPONENTS
+
+## Admin Sidebar (`AdminSidebar.tsx`)
+
+### Structure
+```
+┌─────────────────────────────────┐
+│  [LOGO]  Woreda 11     [←]      │  ← collapse toggle
+├─────────────────────────────────┤
+│  [AVATAR]  Admin Name           │
+│            Admin  ●  online     │  ← role badge + status dot
+├─────────────────────────────────┤
+│  ⊞  Dashboard                   │
+│  🏢  Clubs                      │
+│  👥  All Members                │
+│  📊  Reports                    │
+│  📰  Daily News                 │
+│  👤  Profile                    │
+├─────────────────────────────────┤  ← pushes to bottom
+│  ☀️  Light Mode                 │  ← theme toggle
+│  🚪  Logout                     │
+└─────────────────────────────────┘
+```
+
+### Behavior
+- Expanded: 256px width, labels visible
+- Collapsed: 68px width, icons only + hover tooltips
+- Transition: `width 250ms cubic-bezier(0.4,0,0.2,1)`
+- Active link: `border-left: 3px solid var(--brand)` + `background: var(--brand-light)`
+- Hover: same bg, lighter
+- Mobile (≤768px): hidden by default, hamburger opens as slide-over drawer with dark backdrop
+- Persist collapse state in localStorage
+
+## Manager — Two nav modes
+
+### Desktop Sidebar (`ManagerSidebar.tsx`)
+Same design as Admin Sidebar with these links:
+- Home, Members, Attendance, News (unread badge), Profile
+
+### Mobile Bottom Nav (`ManagerBottomNav.tsx`)
+- Fixed bottom bar, 60px height
+- 5 items: Home, Members, Attendance, News, Profile
+- Active: top 2px brand-color indicator bar
+- News icon: red badge for unread count
+- `padding-bottom: env(safe-area-inset-bottom)` for iPhone notch
+- Desktop (>768px): hide bottom nav, show sidebar
+
+## Navbar (`Navbar.tsx`)
+- Height: 60px, sticky top, border-bottom
+- Left: hamburger (mobile) + page title breadcrumb
+- Center: realtime clock `HH:MM AM/PM` — updates every minute
+- Right: notification bell + avatar
+
+## Bell Menu (`BellMenu.tsx`)
+- Badge: red circle with unread count, max "99+"
+- Bell shakes (CSS animation) on new notification
+- Click: dropdown panel (max-height 360px, scrollable)
+  - Header: "Notifications" + "Mark all read" button
+  - Each item: icon + title + message + time + unread dot
+  - Empty: "No notifications yet" with icon
+  - Click item: marks read, navigates if URL given
+- Close on outside click
+
+## Theme Toggle
+- Sun icon in light mode, Moon in dark mode
+- Click: 360° rotation + instant theme switch
+- Saves to `localStorage` key `woreda11-theme`
+- On page load: reads localStorage before render (no flash)
+
+---
+
+# SECTION 8 — ADMIN DASHBOARD PAGE
+
+## URL: `/admin`
+
+## KPI Cards (row of 4)
+Animated counter on load (count up from 0):
+1. **Total Clubs** — icon: building, count of active clubs
+2. **Total Members** — icon: users, total across all clubs
+3. **Clubs Submitted Today** — format: "3 / 7", subtext: "4 clubs pending" OR "All clubs submitted ✓"
+4. **Active Managers** — icon: user-check, count of active manager accounts
+
+## Live Activity Feed
+- Title: "Live Activity" + green pulsing dot when connected
+- Realtime via Supabase channel `attendance-live`
+- On page load: fetch today's sessions from DB, display immediately
+- New session arrives via Realtime → prepend to top with slideIn animation
+- Each entry:
+  ```
+  [CLUB ICON]  Club Name                    🟢 Live
+               24 members · by Manager Name  02:35 PM
+  ```
+- Empty state: calendar icon + "No submissions yet today" + "Activity appears here as clubs submit attendance"
+- Max 20 entries shown, older ones pushed off
+
+## Absent Alert Banner
+Show ONLY if any club has not submitted for 3+ days:
+```
+⚠️ 2 clubs have not submitted attendance for 3+ days
+─────────────────────────────────────────────────────
+[ICON] ICT Club  ·  Manager: Abebe        5 days ago  [Critical]
+[ICON] Sports Club  ·  Manager: Sara      3 days ago  [Warning]
+```
+Severity colors:
+- 3–6 days: yellow "Warning"
+- 7–9 days: orange "High"
+- 10+ days: red "Critical"
+- Never: dark red "Never Submitted"
+
+## Charts Section (two columns on desktop, stacked on mobile)
+1. **Daily Attendance (30 days)** — Recharts LineChart
+   - X axis: dates (last 30 days)
+   - Y axis: total members who attended
+   - Multi-line: one line per club, different shades of brand color
+   - Animated draw-in on mount
+   - Live: re-fetches when new session arrives via Realtime
+
+2. **This Week by Club** — Recharts BarChart
+   - X axis: club names
+   - Y axis: member count
+   - Bars: brand color fill
+   - Animated draw-in
+
+## Recent News Panel
+Last 3 published news items with thumbnail, title, date.
+"View all" link to `/admin/news`.
+
+---
+
+# SECTION 9 — ADMIN CLUBS PAGE
+
+## URL: `/admin/clubs`
+
+## Header Row
+- Left: "Clubs" h1 + "X clubs registered" subtitle
+- Right: "Add New Club" button (brand color)
+
+## Search + Filter Bar
+- Text search (club name or manager name)
+- Status filter: All / Active / Inactive
+- Sort: Newest / Oldest / Name A–Z / Most Members
+
+## Club Cards Grid
+- Desktop: 3 columns
+- Tablet: 2 columns
+- Mobile: 1 column
+
+### Each Club Card
+```
+┌──────────────────────────────────────────────┐
+│  [64px ICON]  Club Name            [⋮ menu]  │
+│               ● Active  ·  24 members        │
+├──────────────────────────────────────────────┤
+│  👤  Manager:   Abebe Kebede                 │
+│  ✉️  Email:     abebe@email.com              │
+│  📅  Created:   14 January 2024              │
+│  📊  Sessions:  47 submissions               │
+│  🕐  Last att:  20 March 2024                │
+├──────────────────────────────────────────────┤
+│  [View Members]    [Edit]    [Delete]        │
+└──────────────────────────────────────────────┘
+```
+
+Kebab menu (⋮): Edit / Deactivate / View Members / Delete
+
+Club icon: 64×64px rounded square, uploaded image or initials fallback with brand bg.
+
+### Add / Edit Club Modal
+Fields:
+- Club Name (required, max 80, unique live-check)
+- Club Icon (file upload, preview, max 2MB)
+- Manager Full Name (required)
+- Username (required, unique live-check, green ✓ / red ✗)
+- Email (required, unique live-check)
+- Password (required on add, optional on edit)
+- Password strength bar (4 segments)
+- Confirm Password
+
+On submit: atomic DB transaction — create auth user + insert users row + insert clubs row.
+
+### Delete Club Modal
+- Warning: lists what will be deleted
+- Type club name to confirm
+- Red "Delete Forever" button (enabled only when name matches)
+- Cascade: delete sessions → records → members → manager auth user → club
+
+---
+
+# SECTION 10 — ADMIN CLUBS/[ID]/MEMBERS PAGE
+
+## URL: `/admin/clubs/[clubId]/members`
+
+## Breadcrumb
+`Clubs → [Club Name] → Members`
+
+## Header
+- "[Club Name] — Members" + member count badge
+- "Add Member" button (right)
+- "Export Excel" button (right)
+
+## Members Table
+Columns: # | Full Name | Age | Gender | Phone | Joined | Actions
+
+Actions per row: [Edit ✏️] [Delete 🗑️]
+
+Clicking member name → opens MemberDrawer from right side.
+
+### Member Drawer (slide from right, 380px)
+- Club badge + initials avatar + full info
+- Attendance history table (date, day name, time)
+- Monthly attendance bar chart (last 6 months)
+- Edit Member button at bottom
+
+### Add / Edit Member Modal
+Fields:
+- Full Name, Phone Number, Age, Gender (radio)
+- Validate: phone format, age 5–120
+
+### Delete Member Modal
+- "This removes [Name] and all their attendance records"
+- [Cancel] [Delete Member — red]
+
+---
+
+# SECTION 11 — ADMIN MEMBERS PAGE (Global)
+
+## URL: `/admin/members`
+
+## Header
+- "All Members" + total count badge
+- "Add Member" button
+- "Export Excel" button — exports currently filtered view
+
+## Filters
+- Search (name or phone)
+- Club dropdown
+- Gender filter
+- Age range (min / max inputs)
+
+## Table
+Columns: # | Full Name | Age | Gender | Phone | Club | Joined | Actions
+- Sortable columns (click header)
+- Pagination: 25 per page
+- Row click → MemberDrawer
+
+## Excel Export
+Uses SheetJS. File: `woreda11_members_YYYY-MM-DD.xlsx`
+Columns: Full Name, Age, Gender, Phone, Club, Joined Date
+Header row: brand color bg, white text, bold.
+
+---
+
+# SECTION 12 — ADMIN REPORTS PAGE
+
+## URL: `/admin/reports`
+
+## Two Tabs: "Attendance" | "Absent Clubs"
+
+### Attendance Tab
+
+Filter Panel (collapsible card):
+- Date From → Date To (calendar pickers)
+- Club selector (multi-select)
+- Gender filter
+- Age range slider
+- Search (name or phone)
+- [Apply Filters] [Reset]
+
+Results Table:
+Columns: # | Full Name | Age | Gender | Phone | Club | Date | Time
+
+- Sortable, paginated (20/page)
+- Row click → member detail modal (full history)
+- Export: "Export Current View" + "Export All" → .xlsx
+
+### Absent Clubs Tab
+
+Table columns: Club | Manager | Last Submitted | Days Since | Status
+
+Status badges:
+- 3–6 days: yellow "Warning"
+- 7–9 days: orange "High"
+- 10+ days: red "Critical"
+- Never: dark red "Never Submitted"
+
+Export button: downloads absent clubs report as .xlsx
+
+---
+
+# SECTION 13 — ADMIN NEWS PAGE
+
+## URL: `/admin/news`
+
+## Header
+- "Daily News" + "Post News" button (brand color)
+
+## News List
+Cards grid (2 columns desktop, 1 mobile):
+```
+┌─────────────────────────────────────────────┐
+│  [Cover Image 100%×160px]                   │
+│  Title                          14 Jan 2024 │
+│  Description preview (2 lines)              │
+│  👁 12 managers read this                   │
+│                        [Edit] [Delete]      │
+└─────────────────────────────────────────────┘
+```
+
+### Post / Edit News Modal
+- Title (required, 120 char limit with live counter)
+- Description / Body (textarea, rich — support newlines)
+- Cover Image (drag & drop or click to upload, preview before submit)
+- "Publish" button
+
+On publish:
+1. Insert to `news` table
+2. Upload image to Supabase Storage bucket `news-images`
+3. `sendPushToAllManagers()` — triggers real device push notifications
+4. Supabase Realtime broadcast — triggers in-app popup for open manager tabs
+
+### Delete News Modal
+- "This removes the news item permanently"
+- [Cancel] [Delete — red]
+
+---
+
+# SECTION 14 — ADMIN PROFILE PAGE
+
+## URL: `/admin/profile`
+
+Two-column layout (desktop), stacked (mobile):
+
+### Left Column — Edit Profile
+- Profile photo (circle, click → opens file picker)
+  - Loading spinner overlay during upload
+  - Updates navbar avatar instantly via Zustand store
+- Full Name input
+- Email (read-only display)
+- "Save Changes" button with loading state
+
+### Right Column — Change Password
+- Current Password
+- New Password (with strength meter)
+- Confirm Password
+- "Update Password" button
+
+All changes show success toast on completion.
+
+---
+
+# SECTION 15 — MANAGER DASHBOARD PAGE
+
+## URL: `/manager`
+
+## Hero Greeting
+- "Good morning, [Manager Name] 👋"
+- "[Club Name]" badge below name
+- Current date: "Tuesday, 14 January 2024"
+
+## KPI Cards (row of 4)
+1. **Total Members** — my club's member count
+2. **Submitted Today** — green "Yes ✓" / red "No ✗" badge
+3. **Total Submissions** — all-time count
+4. **Unread News** — count with link
+
+## Attendance Status Card
+Large card:
+- If submitted today: success state — "✓ Attendance submitted at 02:35 PM" + member count
+- If not yet: warning state — "You haven't submitted attendance yet today" + "Submit Now" button → navigates to `/manager/attendance`
+
+## Charts
+1. **My Club's Attendance (30 days)** — LineChart
+2. **Weekly Count** — BarChart
+
+## Latest News Banner
+If unread news exists: card with latest news title + "Read Now" button.
+
+---
+
+# SECTION 16 — MANAGER MEMBERS PAGE
+
+## URL: `/manager/members`
+
+## Header
+- "[Club Name] Members" + member count
+- "Add Member" button
+
+## Search input (name or phone)
+
+## Members Table
+Columns: # | Full Name | Age | Gender | Phone | Joined | Actions
+
+Actions: [Edit ✏️] — NO delete button (managers cannot delete)
+
+Server enforces: `DELETE /api/members/:id` returns 403 if role is manager.
+
+### Add Member Modal
+- Full Name, Phone Number, Age, Gender
+- Saves to DB, new row animates in
+
+### Edit Member Modal
+- Pre-filled, all fields editable
+- Saves changes, row updates in place
+
+---
+
+# SECTION 17 — MANAGER ATTENDANCE PAGE
+
+## URL: `/manager/attendance`
+
+## Today's Date
+Shown prominently: "Tuesday, 14 January 2024"
+
+## Already Submitted State
+If attendance submitted today:
+```
+✓ Attendance submitted today at 02:35 PM
+  24 members marked present
+
+  [See who attended] ← expands member list
+```
+
+## Not Yet Submitted State
+```
+Header: "Select members present today"
+
+[Search members by name...]
+
+[Select All]  [Deselect All]     12 selected
+
+┌─────────────────────────────────────────┐
+│ ☑  Abebe Kebede          Age 22 · Male  │
+│ ☑  Sara Haile            Age 19 · Female│
+│ ☐  Dawit Tesfaye         Age 25 · Male  │
+│ ...                                     │
+└─────────────────────────────────────────┘
+
+[Submit Attendance (12)]  ← disabled if 0 selected
+```
+
+### Submit Attendance Modal
+- "Submit attendance for 12 members?"
+- Today's date displayed
+- [Cancel] [Submit — brand button]
+
+On submit:
+1. POST to `/api/attendance`
+2. Server: insert `attendance_sessions` + all `attendance_records`
+3. Supabase Realtime fires → admin live feed updates
+4. Success: confetti animation + success card
+5. Cannot submit again today (server enforces UNIQUE constraint)
+
+---
+
+# SECTION 18 — MANAGER NEWS PAGE
+
+## URL: `/manager/news`
+
+## Header
+- "Daily News"
+- Unread count badge
+
+## News Cards
+```
+┌─────────────────────────────────────────────┐
+│  [Cover image]                              │
+│  ● NEW  Title of News               14 Jan  │
+│  Description preview...                     │
+└─────────────────────────────────────────────┘
+```
+
+- Unread: bold title + blue dot indicator
+- Read: normal weight, no dot
+
+Clicking a card:
+- Opens full news modal (title, full image, full body text)
+- Marks as read in DB (POST `/api/news/:id/read`)
+- Removes unread dot + decrements bell badge
+
+---
+
+# SECTION 19 — MANAGER PROFILE PAGE
+
+## URL: `/manager/profile`
+
+Same layout as Admin Profile:
+- Photo upload (click avatar → file picker → instant update)
+- Full Name
+- Email (read-only)
+- Club Name (read-only label)
+- Change Password section
+
+---
+
+# SECTION 20 — PUSH NOTIFICATIONS (Real Device)
+
+## Service Worker (`public/sw.js`)
+```js
+self.addEventListener('push', event => {
+  const data = event.data?.json() ?? {}
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'Woreda 11', {
+      body:   data.body,
+      icon:   data.icon || '/icon-192.png',
+      badge:  '/badge-72.png',
+      image:  data.image,
+      data:   { url: data.url || '/' },
+      tag:    data.tag || 'woreda11',
+      actions: [
+        { action: 'open',    title: 'Read Now' },
+        { action: 'dismiss', title: 'Dismiss'  },
+      ],
+    })
+  )
+})
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close()
+  if (event.action === 'dismiss') return
+  const url = event.notification.data?.url || '/'
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(list => {
+        for (const client of list) {
+          if ('focus' in client) return client.focus()
+        }
+        return clients.openWindow(url)
+      })
+  )
+})
+
+self.addEventListener('install',  e => e.waitUntil(self.skipWaiting()))
+self.addEventListener('activate', e => e.waitUntil(self.clients.claim()))
+```
+
+## Permission Request Banner (Manager Dashboard)
+Show if permission is `'default'` (not asked yet):
+```
+🔔  Enable notifications to get news alerts instantly
+    [Enable Notifications]  [Not Now]
+```
+- "Not Now" dismisses and saves `push-dismissed` in localStorage
+- Re-shows after 7 days
+
+## Notification Permission UI
+- In manager Profile Settings: toggle "Push Notifications On/Off"
+- Green dot on navbar bell = enabled
+- Grey dot = disabled
+
+---
+
+# SECTION 21 — PRIVACY POLICY PAGE
+
+## URL: `/privacy` (public — no auth needed)
+
+Full page with:
+- Logo at top
+- "Privacy Policy" heading
+- "Effective: January 1, 2024"
+- 8 sections: Data Collection, Usage, Security, Retention, Push Notifications, Your Rights, Changes, Contact
+- "← Back to Login" link
+- Dark/light mode toggle
+
+Linked from:
+- Login page footer
+- Every dashboard page footer
+
+---
+
+# SECTION 22 — ALL API ROUTES (fully implemented)
+
+## `POST /api/auth/login`
+```ts
+Body: { email, password }
+- supabase.auth.signInWithPassword()
+- Fetch user profile from users table
+- Return: { user: UserProfile }
+- Set session cookie via Supabase SSR
+```
+
+## `POST /api/auth/logout`
+```ts
+- supabase.auth.signOut()
+- Clear session
+- Return: { success: true }
+```
+
+## `GET /api/auth/me`
+```ts
+- Get current user from session
+- Return full profile from users table
+```
+
+## `GET /api/clubs`
+```ts
+- requireAuth()
+- JOIN: users (manager), members (count), attendance_sessions (latest date)
+- Return: ClubWithStats[]
+```
+
+## `POST /api/clubs`
+```ts
+- requireAdmin()
+- Body: { name, iconUrl, managerFullName, managerEmail, managerUsername, managerPassword }
+- createSupabaseAdminClient().auth.admin.createUser()
+- INSERT into users (role: manager)
+- INSERT into clubs
+- UPDATE users SET club_id
+- Return: Club
+```
+
+## `PUT /api/clubs/[id]`
+```ts
+- requireAdmin()
+- UPDATE clubs SET name, icon_url
+- If managerFullName/email provided: UPDATE users SET
+- Return: Club
+```
+
+## `DELETE /api/clubs/[id]`
+```ts
+- requireAdmin()
+- Transaction:
+  DELETE attendance_records → sessions → members → news_reads
+  DELETE users (manager)
+  supabase.auth.admin.deleteUser(manager_auth_id)
+  DELETE clubs
+- Delete icon from storage if exists
+- Return: { success: true }
+```
+
+## `PATCH /api/clubs/[id]/status`
+```ts
+- requireAdmin()
+- Body: { isActive: boolean }
+- UPDATE clubs SET is_active
+- Return: { success: true }
+```
+
+## `GET /api/clubs/[id]/members`
+```ts
+- requireAuth()
+- SELECT members WHERE club_id = id
+- Return: Member[]
+```
+
+## `GET /api/members`
+```ts
+- requireAuth()
+- If admin: all members + club info
+- If manager: own club only
+- Supports: ?search=, ?clubId=, ?gender=, ?page=, ?limit=
+- Return: { members: Member[], total: number }
+```
+
+## `POST /api/members`
+```ts
+- requireAuth()
+- If manager: enforce club_id = their club
+- Body: { clubId, fullName, phoneNumber, age, gender }
+- INSERT into members
+- Return: Member
+```
+
+## `PUT /api/members/[id]`
+```ts
+- requireAuth()
+- If manager: verify member belongs to their club (403 if not)
+- UPDATE members SET full_name, phone_number, age, gender
+- Return: Member
+```
+
+## `DELETE /api/members/[id]`
+```ts
+- requireAdmin()  ← ONLY admin can delete
+- Delete attendance_records for this member
+- DELETE members WHERE id
+- Return: { success: true }
+```
+
+## `GET /api/attendance`
+```ts
+- Query params: ?today=true OR ?stats=true OR filters
+- today=true: return today's sessions with club + manager info
+- stats=true: return { totalClubs, totalMembers, clubsSubmittedToday }
+- filters: return paginated attendance records for reports
+```
+
+## `POST /api/attendance`
+```ts
+- requireManager()
+- Body: { clubId, memberIds: string[] }
+- Check not already submitted today (UNIQUE constraint)
+- INSERT attendance_sessions
+- INSERT attendance_records (bulk)
+- Return: AttendanceSession
+```
+
+## `GET /api/attendance/today/[clubId]`
+```ts
+- requireAuth()
+- SELECT attendance_sessions WHERE club_id = clubId AND date = today
+- Return: session | null
+```
+
+## `GET /api/news`
+```ts
+- requireAuth()
+- SELECT news WHERE is_published = true ORDER BY published_at DESC
+- Include: read status for current user
+- Return: NewsWithReadStatus[]
+```
+
+## `POST /api/news`
+```ts
+- requireAdmin()
+- Body: { title, description, imageUrl }
+- INSERT into news
+- sendPushToAllManagers({ title, body, image, url })
+- Supabase Realtime broadcast via channel
+- Return: News
+```
+
+## `PUT /api/news/[id]`
+```ts
+- requireAdmin()
+- UPDATE news SET title, description, image_url
+- Return: News
+```
+
+## `DELETE /api/news/[id]`
+```ts
+- requireAdmin()
+- DELETE news_reads WHERE news_id
+- DELETE news WHERE id
+- Return: { success: true }
+```
+
+## `POST /api/news/[id]/read`
+```ts
+- requireAuth()
+- Get user id from session
+- UPSERT news_reads { news_id, user_id }
+- Return: { success: true }
+```
+
+## `GET /api/reports`
+```ts
+- requireAdmin()
+- Query: ?from=, ?to=, ?clubId=, ?gender=, ?search=, ?page=, ?limit=, ?export=
+- JOIN: attendance_records → members → clubs → sessions
+- Return paginated results or full export data
+```
+
+## `GET /api/reports/absent`
+```ts
+- requireAdmin()
+- Get all active clubs
+- For each: find last attendance_sessions.date
+- Calculate daysSince
+- Return clubs where daysSince >= 3, sorted by daysSince DESC
+```
+
+## `POST /api/push/subscribe`
+```ts
+- requireAuth()
+- Body: { subscription: PushSubscriptionJSON }
+- UPSERT push_subscriptions { user_id, endpoint, p256dh, auth }
+- Return: { success: true }
+```
+
+## `DELETE /api/push/subscribe`
+```ts
+- requireAuth()
+- DELETE push_subscriptions WHERE user_id = current user
+- Return: { success: true }
+```
+
+## `POST /api/upload`
+```ts
+- requireAuth()
+- Body: FormData { file, type: 'profile' | 'club-icon' | 'news', entityId }
+- Validate: MIME type (image only), max 5MB
+- Upload to Supabase Storage
+- Return: { url: string }
+```
+
+---
+
+# SECTION 23 — REAL-TIME (Supabase Realtime)
+
+## Admin: `attendance-live` channel
+```ts
+supabase.channel('attendance-live')
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'attendance_sessions',
+    filter: `date=eq.${todayUTC}`,
+  }, async (payload) => {
+    // Fetch full record with joins
+    // Prepend to activity feed with animation
+    // Increment clubsSubmittedToday counter
+    // Add bell notification
+  })
+  .subscribe()
+```
+
+## Manager: `news-live` channel
+```ts
+supabase.channel('news-live')
+  .on('postgres_changes', {
+    event: 'INSERT',
+    schema: 'public',
+    table: 'news',
+    filter: 'is_published=eq.true',
+  }, (payload) => {
+    // Add bell notification
+    // Show toast "📰 New News: [title]" (8 seconds)
+    // Increment unread badge
+  })
+  .subscribe()
+```
+
+## Cleanup
+```ts
+useEffect(() => {
+  const cleanup = initRealtime()
+  return cleanup  // removes channel on unmount
+}, [])
+```
+
+---
+
+# SECTION 24 — DATE/TIME RULES (STRICT)
+
+All dates and times displayed in the app must follow these rules:
+
+```ts
+// src/lib/formatDate.ts
+
+export function formatDate(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit', month: 'long', year: 'numeric',
+  }).format(new Date(iso))
+  // Output: "14 January 2024"
+}
+
+export function formatShortDate(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric',
+  }).format(new Date(iso))
+  // Output: "14 Jan 2024"
+}
+
+export function formatTime(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    hour: '2-digit', minute: '2-digit', hour12: true,
+  }).format(new Date(iso))
+  // Output: "02:35 PM"  — NO SECONDS EVER
+}
+
+export function formatDateTime(iso: string): string {
+  return `${formatDate(iso)} at ${formatTime(iso)}`
+  // Output: "14 January 2024 at 02:35 PM"
+}
+
+export function getTodayUTC(): string {
+  return new Date().toISOString().slice(0, 10)
+  // Output: "2024-01-14"  — always UTC DATE for DB
+}
+
+export function formatDayName(iso: string): string {
+  return new Intl.DateTimeFormat('en-GB', { weekday: 'long' })
+    .format(new Date(iso))
+  // Output: "Tuesday"
+}
+```
+
+Rules:
+- **All dates: English Gregorian calendar**
+- **All times: HH:MM AM/PM — never show seconds**
+- **All text in English** — no other language
+- **DB storage: always UTC**
+- **Display: Intl.DateTimeFormat with en-GB locale**
+
+---
+
+# SECTION 25 — MOBILE RESPONSIVENESS
+
+## Breakpoints
+```css
+/* Mobile first */
+@media (min-width: 640px)  { /* sm  — tablet portrait */ }
+@media (min-width: 768px)  { /* md  — tablet landscape */ }
+@media (min-width: 1024px) { /* lg  — desktop */ }
+@media (min-width: 1280px) { /* xl  — wide desktop */ }
+```
+
+## Mobile-specific rules
+```css
+/* Sidebar: hidden drawer on mobile */
+@media (max-width: 767px) {
+  .sidebar {
+    position: fixed; top: 0; left: 0; bottom: 0;
+    transform: translateX(-100%);
+    transition: transform 250ms ease;
+    z-index: 1000; width: 280px;
+  }
+  .sidebar.open { transform: translateX(0); }
+  .sidebar-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 999;
+    display: none;
+  }
+  .sidebar-backdrop.visible { display: block; }
+  .main-content { margin-left: 0 !important; }
+
+  /* Tables: horizontal scroll */
+  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { min-width: 560px; }
+
+  /* Modals: full width */
+  .modal { width: calc(100vw - 24px) !important; max-height: calc(100vh - 80px); overflow-y: auto; }
+
+  /* Inputs: 16px min prevents iOS zoom */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Minimum tap targets */
+  button, a, [role="button"] { min-height: 44px; min-width: 44px; }
+
+  /* Grids collapse */
+  .clubs-grid { grid-template-columns: 1fr !important; }
+  .kpi-grid   { grid-template-columns: 1fr 1fr !important; }
+
+  /* Page padding */
+  .page { padding: 12px !important; }
+
+  /* Bottom nav spacing */
+  .manager-main { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+}
+
+@media (max-width: 480px) {
+  .kpi-grid { grid-template-columns: 1fr !important; }
+}
+```
+
+---
+
+# SECTION 26 — SKELETON SCREENS
+
+Every page that fetches data shows skeletons while loading:
+
+```tsx
+// Skeleton card component
+function SkeletonCard() {
+  return (
+    <div className="skeleton-card">
+      <div className="skeleton-avatar" />
+      <div className="skeleton-lines">
+        <div className="skeleton-line w-3/4" />
+        <div className="skeleton-line w-1/2" />
+      </div>
+    </div>
+  )
+}
+```
+
+```css
+@keyframes shimmer {
+  0%   { background-position: -1000px 0; }
+  100% { background-position:  1000px 0; }
+}
+.skeleton-line {
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(90deg,
+    var(--bg-raised) 25%,
+    var(--bg-surface) 50%,
+    var(--bg-raised) 75%);
+  background-size: 1000px 100%;
+  animation: shimmer 1.5s infinite;
+}
+```
+
+---
+
+# SECTION 27 — TOAST NOTIFICATION SYSTEM
+
+```ts
+// src/stores/notificationStore.ts
+import { create } from 'zustand'
+
+type Toast = {
+  id: string
+  type: 'success' | 'error' | 'info' | 'warning'
+  title: string
+  message?: string
+  duration?: number
+}
+
+type BellNotif = {
+  id: string
+  type: 'success' | 'error' | 'info' | 'warning'
+  title: string
+  message: string
+  url?: string
+  read: boolean
+  createdAt: string
+}
+
+export const useNotifStore = create((set, get) => ({
+  toasts: [] as Toast[],
+  bell:   [] as BellNotif[],
+
+  addToast: (n: Omit<Toast, 'id'>) => {
+    const id = crypto.randomUUID()
+    set(s => ({ toasts: [...s.toasts, { ...n, id }].slice(-5) }))
+    setTimeout(() => get().removeToast(id), n.duration ?? 5000)
+  },
+
+  removeToast: (id: string) =>
+    set(s => ({ toasts: s.toasts.filter(t => t.id !== id) })),
+
+  addBell: (n: Omit<BellNotif, 'id' | 'read' | 'createdAt'>) =>
+    set(s => ({
+      bell: [{ ...n, id: crypto.randomUUID(), read: false, createdAt: new Date().toISOString() },
+             ...s.bell].slice(0, 50)
+    })),
+
+  markRead: (id: string) =>
+    set(s => ({ bell: s.bell.map(b => b.id === id ? { ...b, read: true } : b) })),
+
+  markAllRead: () => set(s => ({ bell: s.bell.map(b => ({ ...b, read: true })) })),
+  unreadCount: () => (get() as any).bell.filter((b: BellNotif) => !b.read).length,
+}))
+```
+
+## Toast Position
+- Desktop: bottom-right
+- Mobile: bottom-center (full width with margin)
+- Max 5 stacked, FIFO
+- Each: left-border accent color + title + message + X close + progress bar
+
+---
+
+# SECTION 28 — EXCEL EXPORT
+
+```ts
+// src/lib/exportExcel.ts
+import * as XLSX from 'xlsx'
+
+export function exportMembers(members: any[], filename = 'members') {
+  const rows = members.map((m, i) => ({
+    '#':          i + 1,
+    'Full Name':  m.full_name,
+    'Age':        m.age,
+    'Gender':     m.gender,
+    'Phone':      m.phone_number,
+    'Club':       m.clubs?.name ?? '—',
+    'Joined':     new Date(m.created_at).toLocaleDateString('en-GB'),
+  }))
+
+  const ws = XLSX.utils.json_to_sheet(rows)
+  ws['!cols'] = [
+    {wch:4},{wch:28},{wch:6},{wch:10},{wch:18},{wch:22},{wch:14}
+  ]
+
+  // Style header row
+  const range = XLSX.utils.decode_range(ws['!ref'] ?? 'A1')
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const cell = XLSX.utils.encode_cell({ r: 0, c })
+    if (!ws[cell]) continue
+    ws[cell].s = {
+      font: { bold: true, color: { rgb: 'FFFFFF' } },
+      fill: { fgColor: { rgb: '255057' } },
+    }
+  }
+
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Members')
+  XLSX.writeFile(wb, `woreda11_${filename}_${new Date().toISOString().slice(0,10)}.xlsx`)
+}
+
+export function exportAttendance(records: any[], filename = 'attendance') {
+  const rows = records.map((r, i) => ({
+    '#':          i + 1,
+    'Full Name':  r.members?.full_name,
+    'Age':        r.members?.age,
+    'Gender':     r.members?.gender,
+    'Phone':      r.members?.phone_number,
+    'Club':       r.members?.clubs?.name ?? '—',
+    'Date':       r.attendance_sessions?.date,
+    'Time':       new Date(r.attended_at).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' }),
+  }))
+
+  const ws = XLSX.utils.json_to_sheet(rows)
+  ws['!cols'] = [{wch:4},{wch:28},{wch:6},{wch:10},{wch:18},{wch:22},{wch:14},{wch:10}]
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Attendance')
+  XLSX.writeFile(wb, `woreda11_${filename}_${new Date().toISOString().slice(0,10)}.xlsx`)
+}
+
+export function exportAbsentClubs(clubs: any[]) {
+  const rows = clubs.map((c, i) => ({
+    '#':             i + 1,
+    'Club Name':     c.clubName,
+    'Manager':       c.managerName,
+    'Last Submitted': c.lastSubmitted ?? 'Never',
+    'Days Since':    c.daysSince === 9999 ? 'Never submitted' : c.daysSince,
+    'Status':        c.severity === 'critical' ? 'Critical (10+ days)'
+                   : c.severity === 'high'     ? 'High (7-9 days)'
+                   :                             'Warning (3-6 days)',
+  }))
+  const ws = XLSX.utils.json_to_sheet(rows)
+  const wb = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(wb, ws, 'Absent Clubs')
+  XLSX.writeFile(wb, `woreda11_absent_clubs_${new Date().toISOString().slice(0,10)}.xlsx`)
+}
+```
+
+---
+
+# SECTION 29 — SECURITY CHECKLIST
+
+Every item below must be implemented:
+
+```
+AUTH
+✅ Supabase Auth handles all sessions (httpOnly cookies via SSR package)
+✅ middleware.ts protects all /admin and /manager routes
+✅ API routes call requireAdmin() or requireManager() server-side
+✅ Managers cannot access /admin routes (403 + redirect)
+✅ Managers cannot delete members (server returns 403)
+✅ Managers cannot add/edit clubs (server returns 403)
+
+DATABASE
+✅ RLS enabled on ALL tables
+✅ Managers can only read/write their own club_id data
+✅ Service role key used only in API routes (never client-side)
+✅ Parameterized queries only (Supabase client handles this)
+
+TRANSPORT
+✅ HTTPS enforced via hosting (Vercel / VPS with SSL cert)
+✅ Security headers set in next.config.ts (X-Frame-Options, etc.)
+✅ CORS: Supabase configured to allow only yourdomain.com
+
+FILES
+✅ Upload: validate MIME type (image/* only)
+✅ Upload: max 5MB enforced
+✅ Storage buckets: public read, authenticated write
+
+PUSH
+✅ VAPID_PRIVATE_KEY only in server-side env (never NEXT_PUBLIC_)
+✅ Push subscriptions scoped to authenticated users only
+✅ Expired subscriptions (410 Gone) auto-deleted after send
+```
+
+---
+
+# SECTION 30 — DEPLOY INSTRUCTIONS
+
+## Build commands
+```bash
+npm run build   # compile and optimize
+npm start       # start Node.js server on port 3000
+```
+
+## PM2 (24/7 uptime)
+```bash
+npm install -g pm2
+pm2 start npm --name "woreda11" -- start -- -p 3000
+pm2 save
+pm2 startup
+```
+
+## Nginx config
+```nginx
+server {
+  listen 80;
+  server_name yourdomain.com www.yourdomain.com;
+  return 301 https://$host$request_uri;
+}
+
+server {
+  listen 443 ssl http2;
+  server_name yourdomain.com www.yourdomain.com;
+  ssl_certificate     /etc/letsencrypt/live/yourdomain.com/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/yourdomain.com/privkey.pem;
+
+  location / {
+    proxy_pass       http://127.0.0.1:3000;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection 'upgrade';
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_cache_bypass $http_upgrade;
+  }
+}
+```
+
+## Free SSL
+```bash
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+```
+
+## Supabase Auth settings (required for custom domain)
+```
+Authentication → URL Configuration:
+  Site URL:      https://yourdomain.com
+  Redirect URLs: https://yourdomain.com/**
+                 http://localhost:3000/**
+```
+
+---
+
+# SECTION 31 — PWA MANIFEST
+
+`public/manifest.json`:
+```json
+{
+  "name": "Woreda 11",
+  "short_name": "Woreda 11",
+  "description": "Club Attendance Management Platform",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#255057",
+  "background_color": "#0a1517",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
+```
+
+---
+
+# SECTION 32 — FINAL QA CHECKLIST
+
+```
+BUILD
+✅ npm run build → exits 0, zero TypeScript errors
+✅ npm start → app loads at localhost:3000
+
+AUTH
+✅ Login with admin email → lands on /admin
+✅ Login with manager email → lands on /manager
+✅ Accessing /admin without login → redirects to /login
+✅ Manager accessing /admin → redirects to /manager
+✅ Logout → redirects to /login, session cleared
+
+ADMIN DASHBOARD
+✅ KPI cards show real numbers from DB
+✅ "Clubs Submitted Today" shows X / Y (clubs, not members)
+✅ Live feed shows today's sessions on load
+✅ Open two tabs: submit in one, feed updates in other (Realtime)
+✅ Absent alert shows if any club 3+ days silent
+✅ Charts render with real data
+
+ADMIN CLUBS
+✅ All clubs visible with icon, name, manager, counts
+✅ Add club: creates both club and manager account
+✅ Edit club: updates all fields
+✅ Delete club: requires typing name, cascades correctly
+✅ View Members → navigates to per-club members page
+
+ADMIN MEMBERS
+✅ All members across all clubs visible
+✅ Search filters work instantly (no API call)
+✅ Export Excel downloads correct .xlsx with real data
+
+ADMIN REPORTS
+✅ Date range filter returns correct records
+✅ Export downloads filtered data as .xlsx
+✅ Absent Clubs tab shows clubs with severity badges
+
+ADMIN NEWS
+✅ Post news: saves to DB + sends push to managers
+✅ Edit news: updates correctly
+✅ Delete news: removes from list
+
+MANAGER DASHBOARD
+✅ Shows own club data only
+✅ Attendance status card correct (submitted/not)
+✅ Charts show own club trend
+
+MANAGER ATTENDANCE
+✅ Member checklist shows all club members
+✅ Submit: saves to DB, live feed in admin updates
+✅ Cannot submit twice in one day (error shown)
+✅ Success: confetti animation
+
+MANAGER MEMBERS
+✅ Can add members (saves to DB)
+✅ Can edit members (saves changes)
+✅ No delete button visible
+✅ Delete attempt via API returns 403
+
+MANAGER NEWS
+✅ All published news visible
+✅ Unread badge shows correct count
+✅ Click news: marks as read, badge decrements
+
+PUSH NOTIFICATIONS
+✅ Permission banner shows on first visit
+✅ Grant permission: subscription saved to DB
+✅ Admin posts news → real device notification fires
+✅ Click notification → opens /manager/news
+
+PROFILE
+✅ Click navbar avatar → file picker opens
+✅ Upload photo → avatar updates instantly everywhere
+✅ Change name → saves to DB
+✅ Change password → works correctly
+
+REALTIME
+✅ Supabase Realtime connection established on load
+✅ Attendance submission fires to admin
+✅ News post fires to all managers
+
+MOBILE
+✅ All pages work on 375px width
+✅ Sidebar is drawer with backdrop on mobile
+✅ Manager has bottom nav on mobile, sidebar on desktop
+✅ Tables scroll horizontally
+✅ No iOS auto-zoom (inputs ≥ 16px)
+
+PRIVACY PAGE
+✅ /privacy loads without login
+✅ Linked from login footer and dashboard footer
+
+DARK/LIGHT MODE
+✅ Toggle works on login page
+✅ Toggle works on all dashboard pages
+✅ Preference saved across page refreshes
+✅ All elements respect theme (no hardcoded colors)
+
+DEPLOY
+✅ npm run build → zero errors
+✅ https://yourdomain.com → loads
+✅ https://yourdomain.com/admin → loads (not 404)
+✅ Hard refresh on any route → stays on that page
+✅ PM2 status shows online
+✅ HTTPS green padlock visible
+```
+
+---
+
+# START BUILDING
+
+You now have the complete specification. Build every file listed in Section 5.
+Implement every feature described above. Do not skip anything.
+When a feature requires data that is not available yet, show a skeleton screen.
+When an action fails, show a specific error toast.
+Every form must save. Every button must work. Every page must load.
+
+**This is a production application. Build it to that standard.**
