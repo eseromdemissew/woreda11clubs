@@ -1,19 +1,19 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-// FIX 1: Use this import style to fix the "not callable" error
-import pinoHttp = require("pino-http"); 
+import pinoHttp from "pino-http"; // Standard ES Import
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
 
 const app: Express = express();
 
+// FIX: Cast pinoHttp as 'any' to bypass the broken type definition 
+// that Vercel's strict compiler is complaining about.
 app.use(
-  pinoHttp({
+  (pinoHttp as any)({
     logger,
     serializers: {
-      // FIX 2: Explicitly type 'req' as 'any'
       req(req: any) {
         return {
           id: req.id,
@@ -21,7 +21,6 @@ app.use(
           url: req.url?.split("?")[0],
         };
       },
-      // FIX 3: Explicitly type 'res' as 'any'
       res(res: any) {
         return {
           statusCode: res.statusCode,
