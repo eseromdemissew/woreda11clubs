@@ -1,0 +1,2 @@
+- [Replit Auth integration](replit-auth-integration.md) — OIDC sessions in Postgres; upsertUser links by replitSub then email; drizzle push needs TTY.
+- [DB schema migration approach](db-schema-migration.md) — drizzle-kit push is interactive-only; use executeSql in non-TTY contexts.

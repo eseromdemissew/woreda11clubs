@@ -8,12 +8,10 @@ import {
   FileText, 
   Newspaper, 
   LogOut,
-  Menu,
   X,
   UserCircle
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { useLogout } from "@workspace/api-client-react";
 import { Button } from "@/components/ui/button";
 
 interface SidebarProps {
@@ -25,7 +23,6 @@ interface SidebarProps {
 export function Sidebar({ className, isOpen, setIsOpen }: SidebarProps) {
   const [location] = useLocation();
   const { user } = useAuth();
-  const logoutMutation = useLogout();
 
   const adminLinks = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -46,16 +43,11 @@ export function Sidebar({ className, isOpen, setIsOpen }: SidebarProps) {
   const profileLink = user?.role === "admin" ? "/admin/profile" : "/manager/profile";
 
   const handleLogout = () => {
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        window.location.href = "/login";
-      }
-    });
+    window.location.href = "/api/logout";
   };
 
   return (
     <>
-      {/* Mobile backdrop */}
       {isOpen && (
         <div 
           className="fixed inset-0 z-40 bg-black/50 md:hidden"
@@ -63,13 +55,11 @@ export function Sidebar({ className, isOpen, setIsOpen }: SidebarProps) {
         />
       )}
 
-      {/* Sidebar container */}
       <div className={cn(
         "fixed inset-y-0 left-0 z-50 w-64 bg-sidebar border-r border-sidebar-border transition-transform duration-300 ease-in-out md:static md:translate-x-0 flex flex-col",
         isOpen ? "translate-x-0" : "-translate-x-full",
         className
       )}>
-        {/* Header */}
         <div className="h-16 flex items-center px-6 border-b border-sidebar-border justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" onError={(e) => e.currentTarget.style.display='none'} />
@@ -80,7 +70,6 @@ export function Sidebar({ className, isOpen, setIsOpen }: SidebarProps) {
           </Button>
         </div>
 
-        {/* User Info */}
         <div className="p-4 border-b border-sidebar-border/50 bg-sidebar-accent/30">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
@@ -93,7 +82,6 @@ export function Sidebar({ className, isOpen, setIsOpen }: SidebarProps) {
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-4 space-y-1">
           {links.map((link) => {
             const Icon = link.icon;
@@ -115,7 +103,6 @@ export function Sidebar({ className, isOpen, setIsOpen }: SidebarProps) {
           })}
         </nav>
 
-        {/* Footer */}
         <div className="p-4 border-t border-sidebar-border space-y-1">
           <Link href={profileLink}>
             <span className={cn(
@@ -130,7 +117,6 @@ export function Sidebar({ className, isOpen, setIsOpen }: SidebarProps) {
           </Link>
           <button 
             onClick={handleLogout}
-            disabled={logoutMutation.isPending}
             className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors cursor-pointer"
           >
             <LogOut className="w-5 h-5" />

@@ -13,9 +13,60 @@ export interface SuccessResponse {
   success: boolean;
 }
 
-export interface LoginInput {
-  email: string;
-  password: string;
+export type AuthUserRole = typeof AuthUserRole[keyof typeof AuthUserRole];
+
+
+export const AuthUserRole = {
+  admin: 'admin',
+  manager: 'manager',
+} as const;
+
+export interface AuthUser {
+  id: string;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  firstName?: string | null;
+  /** @nullable */
+  lastName?: string | null;
+  /** @nullable */
+  profileImageUrl?: string | null;
+  role: AuthUserRole;
+  /** @nullable */
+  clubId?: string | null;
+  /** @nullable */
+  fullName?: string | null;
+  isActive: boolean;
+}
+
+export interface AuthUserEnvelope {
+  user: AuthUser | null;
+}
+
+export interface MobileTokenExchangeRequest {
+  /** @minLength 1 */
+  code: string;
+  /** @minLength 1 */
+  code_verifier: string;
+  /** @minLength 1 */
+  redirect_uri: string;
+  /** @minLength 1 */
+  state: string;
+  /** @minLength 1 */
+  nonce?: string;
+}
+
+export interface MobileTokenExchangeSuccess {
+  token: string;
+}
+
+export const LogoutSuccessValue = {
+  success: true,
+} as const;
+export type LogoutSuccess = typeof LogoutSuccessValue;
+
+export interface ErrorEnvelope {
+  error: string;
 }
 
 export type UserProfileRole = typeof UserProfileRole[keyof typeof UserProfileRole];
@@ -38,11 +89,6 @@ export interface UserProfile {
   profilePhotoUrl?: string | null;
   isActive: boolean;
   createdAt: string;
-}
-
-export interface AuthResponse {
-  user: UserProfile;
-  token: string;
 }
 
 export interface ClubInput {
@@ -321,6 +367,20 @@ export interface FileUploadInput {
 export interface UploadResponse {
   url: string;
 }
+
+/**
+ * Opaque session token — `Bearer <sid>`.
+ */
+export type AuthorizationSessionHeaderParameter = string;
+
+export type BeginBrowserLoginParams = {
+returnTo?: string;
+};
+
+export type HandleBrowserLoginCallbackParams = {
+code?: string;
+state?: string;
+};
 
 export type ListMembersParams = {
 search?: string;

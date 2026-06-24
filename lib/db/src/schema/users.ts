@@ -4,10 +4,11 @@ import { z } from "zod/v4";
 
 export const usersTable = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
+  replitSub: text("replit_sub").unique(),
   username: text("username").unique().notNull(),
   fullName: text("full_name").notNull(),
   email: text("email").unique().notNull(),
-  passwordHash: text("password_hash").notNull(),
+  passwordHash: text("password_hash"),
   role: text("role", { enum: ["admin", "manager"] }).notNull().default("manager"),
   clubId: uuid("club_id"),
   profilePhotoUrl: text("profile_photo_url"),

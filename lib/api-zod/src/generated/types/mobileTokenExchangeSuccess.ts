@@ -5,9 +5,7 @@
  * Woreda 11 Club Attendance Management API
  * OpenAPI spec version: 0.1.0
  */
-import type { UserProfile } from './userProfile';
 
-export interface AuthResponse {
-  user: UserProfile;
+export interface MobileTokenExchangeSuccess {
   token: string;
 }

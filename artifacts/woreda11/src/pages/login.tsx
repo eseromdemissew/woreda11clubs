@@ -1,63 +1,25 @@
 import React from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { useLogin } from "@workspace/api-client-react";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
-import { toast } from "sonner";
-
-const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
-  rememberMe: z.boolean().default(false),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const [_, setLocation] = useLocation();
-  const { user, isLoading: authLoading } = useAuth();
-  
-  const loginMutation = useLogin();
-
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      rememberMe: false,
-    },
-  });
+  const { user, isLoading } = useAuth();
 
   React.useEffect(() => {
-    if (!authLoading && user) {
+    if (!isLoading && user) {
       setLocation(user.role === "admin" ? "/admin" : "/manager");
     }
-  }, [user, authLoading, setLocation]);
+  }, [user, isLoading, setLocation]);
 
-  const onSubmit = (data: LoginFormValues) => {
-    loginMutation.mutate(
-      { data: { email: data.email, password: data.password } },
-      {
-        onSuccess: (res) => {
-          toast.success("Login successful");
-          setLocation(res.user.role === "admin" ? "/admin" : "/manager");
-        },
-        onError: (err) => {
-          toast.error("Login failed. Please check your credentials.");
-        },
-      }
-    );
+  const handleLogin = () => {
+    window.location.href = "/api/login?returnTo=" + encodeURIComponent(window.location.pathname === "/login" ? "/" : window.location.pathname);
   };
 
-  if (authLoading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -67,10 +29,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center relative overflow-hidden bg-[#0a1517]">
-      {/* Floating orbs background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px] animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[100px] animate-pulse" style={{ animationDuration: '12s' }} />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/20 blur-[120px] animate-pulse" style={{ animationDuration: "8s" }} />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-primary/10 blur-[100px] animate-pulse" style={{ animationDuration: "12s" }} />
       </div>
 
       <motion.div
@@ -79,92 +40,42 @@ export default function LoginPage() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md p-8 rounded-2xl bg-surface/80 backdrop-blur-xl border border-primary/20 shadow-2xl relative z-10 mx-4"
       >
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-10">
           <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4 p-2">
-            <img src="/logo.png" alt="Logo" className="w-full h-full object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
+            <img
+              src="/logo.png"
+              alt="Logo"
+              className="w-full h-full object-contain"
+              onError={(e) => (e.currentTarget.style.display = "none")}
+            />
           </div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Woreda 11</h1>
-          <p className="text-muted-foreground mt-2 text-center">Club Management Portal</p>
+          <p className="text-muted-foreground mt-2 text-center text-sm">
+            Club Attendance Management Platform
+          </p>
+          <p className="text-white/40 mt-1 text-center text-xs">
+            Addis Ababa City Administration — Bureau of Youth and Sport
+          </p>
         </div>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-white/80">Email</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="admin@woreda11.gov.et" 
-                      className="bg-black/20 border-primary/20 text-white placeholder:text-white/30 focus-visible:ring-primary h-12"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-white/80">Password</FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="password"
-                      placeholder="••••••••" 
-                      className="bg-black/20 border-primary/20 text-white placeholder:text-white/30 focus-visible:ring-primary h-12"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <div className="flex items-center justify-between">
-              <FormField
-                control={form.control}
-                name="rememberMe"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="border-primary/50 data-[state=checked]:bg-primary"
-                      />
-                    </FormControl>
-                    <FormLabel className="text-sm font-normal text-white/70 cursor-pointer">
-                      Remember me
-                    </FormLabel>
-                  </FormItem>
-                )}
-              />
-            </div>
+        <Button
+          onClick={handleLogin}
+          className="w-full h-12 text-base font-semibold shadow-lg hover-elevate transition-all duration-200 active:scale-[0.98] gap-3"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            className="h-5 w-5 fill-current"
+            aria-hidden="true"
+          >
+            <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 2.4a7.6 7.6 0 1 1 0 15.2A7.6 7.6 0 0 1 12 4.4zm-1.6 3.2v4.8H8L12 16l4-3.6h-2.4V7.6h-3.2z" />
+          </svg>
+          Sign in with Replit
+        </Button>
 
-            <Button 
-              type="submit" 
-              className="w-full h-12 text-lg font-medium shadow-lg hover-elevate transition-all duration-200 active:scale-[0.98]"
-              disabled={loginMutation.isPending}
-            >
-              {loginMutation.isPending ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                "Sign In"
-              )}
-            </Button>
-          </form>
-        </Form>
-
-        <div className="mt-8 text-center text-sm text-white/50">
-          <Link href="/privacy" className="hover:text-white transition-colors underline underline-offset-4">
-            Privacy Policy
-          </Link>
-        </div>
+        <p className="mt-6 text-center text-xs text-white/30">
+          Access is managed by your organisation. Contact your administrator if
+          you cannot sign in.
+        </p>
       </motion.div>
     </div>
   );
