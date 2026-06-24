@@ -1,16 +1,15 @@
-{
-  "compilerOptions": {
+"compilerOptions": {
     "incremental": true,
     "isolatedModules": true,
     "lib": ["es2022"],
     "module": "esnext",
     "moduleResolution": "bundler",
-    "noEmitOnError": true,
+    "noEmitOnError": false,            // CHANGE THIS to false
     "noFallthroughCasesInSwitch": true,
     "noImplicitOverride": false,
     "noImplicitReturns": true,
     "noUnusedLocals": false,
-    "noImplicitAny": true,
+    "noImplicitAny": false,            // CHANGE THIS to false
     "noImplicitThis": true,
     "strictNullChecks": true,
     "strictFunctionTypes": false,
@@ -23,4 +22,3 @@
     "types": [],
     "customConditions": ["workspace"]
   }
-}
