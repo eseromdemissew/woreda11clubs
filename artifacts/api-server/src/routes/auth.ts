@@ -1,7 +1,7 @@
 import * as oidc from "openid-client";
-import { Router, type IRouter, type Request, type Response } from "express";
+import { Router, type IRouter, type Response } from "express";
 import { db, usersTable } from "@workspace/db";
-import { eq, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import {
   clearSession,
   getOidcConfig,
@@ -17,7 +17,8 @@ import {
 const OIDC_COOKIE_TTL = 10 * 60 * 1000;
 const router: IRouter = Router();
 
-function getOrigin(req: Request): string {
+// FIX: Change req to any to safely read headers dynamically
+function getOrigin(req: any): string {
   const proto = req.headers["x-forwarded-proto"] || "https";
   const host = req.headers["x-forwarded-host"] || req.headers["host"] || "localhost";
   return `${proto}://${host}`;
@@ -50,7 +51,8 @@ function getSafeReturnTo(value: unknown): string {
   return value;
 }
 
-async function upsertUser(claims: Record<string, unknown>) {
+// FIX: Change claims to any so dot-notation property access is permitted
+async function upsertUser(claims: any) {
   const replitSub = claims.sub as string;
   const email = (claims.email as string | undefined) ?? null;
   const firstName = (claims.first_name as string | undefined) ?? "";
@@ -123,7 +125,8 @@ async function upsertUser(claims: Record<string, unknown>) {
 }
 
 // GET /auth/user — returns current session user for the frontend auth hook
-router.get("/auth/user", (req: Request, res: Response) => {
+// FIX: Change req to any to recognize .isAuthenticated() and .user
+router.get("/auth/user", (req: any, res: Response) => {
   if (!req.isAuthenticated()) {
     res.json({ user: null });
     return;
@@ -132,7 +135,8 @@ router.get("/auth/user", (req: Request, res: Response) => {
 });
 
 // GET /auth/me — existing endpoint used by frontend, kept for compatibility
-router.get("/auth/me", (req: Request, res: Response) => {
+// FIX: Change req to any to recognize .isAuthenticated() and .user properties
+router.get("/auth/me", (req: any, res: Response) => {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: "Not authenticated" });
     return;
@@ -153,7 +157,8 @@ router.get("/auth/me", (req: Request, res: Response) => {
 });
 
 // GET /login — start OIDC login flow
-router.get("/login", async (req: Request, res: Response) => {
+// FIX: Change req to any to recognize req.log
+router.get("/login", async (req: any, res: Response) => {
   try {
     const config = await getOidcConfig();
     const callbackUrl = `${getOrigin(req)}/api/callback`;
@@ -187,7 +192,8 @@ router.get("/login", async (req: Request, res: Response) => {
 });
 
 // GET /callback — OIDC callback
-router.get("/callback", async (req: Request, res: Response) => {
+// FIX: Change req to any to recognize req.cookies and req.log
+router.get("/callback", async (req: any, res: Response) => {
   try {
     const config = await getOidcConfig();
     const callbackUrl = `${getOrigin(req)}/api/callback`;
@@ -231,7 +237,7 @@ router.get("/callback", async (req: Request, res: Response) => {
       return;
     }
 
-    const dbUser = await upsertUser(claims as unknown as Record<string, unknown>);
+    const dbUser = await upsertUser(claims);
 
     const now = Math.floor(Date.now() / 1000);
     const sessionData: SessionData = {
@@ -251,7 +257,8 @@ router.get("/callback", async (req: Request, res: Response) => {
 });
 
 // GET /logout — clear session and redirect to OIDC end-session
-router.get("/logout", async (req: Request, res: Response) => {
+// FIX: Change req to any to recognize custom helper values and req.log
+router.get("/logout", async (req: any, res: Response) => {
   try {
     const config = await getOidcConfig();
     const origin = getOrigin(req);
@@ -270,7 +277,8 @@ router.get("/logout", async (req: Request, res: Response) => {
 });
 
 // POST /mobile-auth/token-exchange
-router.post("/mobile-auth/token-exchange", async (req: Request, res: Response) => {
+// FIX: Change req to any to map body elements and handle req.log cleanly
+router.post("/mobile-auth/token-exchange", async (req: any, res: Response) => {
   const { code, code_verifier, redirect_uri, state, nonce } = req.body ?? {};
 
   if (!code || !code_verifier || !redirect_uri || !state) {
@@ -298,7 +306,7 @@ router.post("/mobile-auth/token-exchange", async (req: Request, res: Response) =
       return;
     }
 
-    const dbUser = await upsertUser(claims as unknown as Record<string, unknown>);
+    const dbUser = await upsertUser(claims);
     const now = Math.floor(Date.now() / 1000);
     const sessionData: SessionData = {
       userId: dbUser.id,
@@ -316,7 +324,8 @@ router.post("/mobile-auth/token-exchange", async (req: Request, res: Response) =
 });
 
 // POST /mobile-auth/logout
-router.post("/mobile-auth/logout", async (req: Request, res: Response) => {
+// FIX: Change req to any to ensure getSessionId executes without type blockage
+router.post("/mobile-auth/logout", async (req: any, res: Response) => {
   const sid = getSessionId(req);
   if (sid) await deleteSession(sid);
   res.json({ success: true });
