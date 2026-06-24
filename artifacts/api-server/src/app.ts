@@ -1,7 +1,8 @@
 import express, { type Express } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import pinoHttp from "pino-http";
+// FIX 1: Use this import style to fix the "not callable" error
+import pinoHttp = require("pino-http"); 
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { authMiddleware } from "./middlewares/authMiddleware";
@@ -12,14 +13,16 @@ app.use(
   pinoHttp({
     logger,
     serializers: {
-      req(req) {
+      // FIX 2: Explicitly type 'req' as 'any'
+      req(req: any) {
         return {
           id: req.id,
           method: req.method,
           url: req.url?.split("?")[0],
         };
       },
-      res(res) {
+      // FIX 3: Explicitly type 'res' as 'any'
+      res(res: any) {
         return {
           statusCode: res.statusCode,
         };
